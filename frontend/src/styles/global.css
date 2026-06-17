@@ -1,0 +1,341 @@
+/* ============================================================
+   KODE Face-ID — Design tokens (dual theme) + global base
+   All UI colors are driven by these CSS variables so light/dark
+   switching is a single attribute flip on <html data-theme>.
+   ============================================================ */
+
+:root {
+  /* spacing + radii scale (4/8pt rhythm) */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  --font-sans: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 200ms;
+}
+
+/* ---------- DARK (default) ---------- */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #080B14;
+  --bg-grad-1: #0A0F1E;
+  --bg-grad-2: #0C1426;
+  --bg-mesh-1: rgba(56, 189, 248, 0.10);
+  --bg-mesh-2: rgba(129, 140, 248, 0.10);
+
+  --surface: #10172A;
+  --surface-2: #161F36;
+  --surface-3: #1D2842;
+  --surface-glass: rgba(16, 23, 42, 0.72);
+
+  --border: #232E4A;
+  --border-strong: #31405F;
+
+  --text: #E9EEF8;
+  --text-muted: #9AA7BE;
+  --text-dim: #64748B;
+
+  --primary: #38BDF8;
+  --primary-strong: #0EA5E9;
+  --primary-contrast: #04121F;
+  --primary-soft: rgba(56, 189, 248, 0.12);
+  --primary-border: rgba(56, 189, 248, 0.28);
+
+  --accent: #818CF8;
+  --accent-2: #C084FC;
+
+  --ok: #34D399;
+  --ok-soft: rgba(52, 211, 153, 0.13);
+  --ok-border: rgba(52, 211, 153, 0.28);
+  --err: #FB7185;
+  --err-soft: rgba(251, 113, 133, 0.13);
+  --err-border: rgba(251, 113, 133, 0.30);
+  --warn: #FBBF24;
+  --warn-soft: rgba(251, 191, 36, 0.13);
+  --warn-border: rgba(251, 191, 36, 0.30);
+
+  --ring: rgba(56, 189, 248, 0.40);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 24px 60px -18px rgba(0, 0, 0, 0.70);
+  --shadow-glow: 0 0 0 1px var(--primary-border), 0 12px 40px -12px rgba(56, 189, 248, 0.30);
+  --login-glow-rgb: 56, 189, 248;
+}
+
+/* ---------- LIGHT ---------- */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #F4F7FC;
+  --bg-grad-1: #EEF3FB;
+  --bg-grad-2: #F7F9FE;
+  --bg-mesh-1: rgba(14, 165, 233, 0.12);
+  --bg-mesh-2: rgba(99, 102, 241, 0.10);
+
+  --surface: #FFFFFF;
+  --surface-2: #F4F7FB;
+  --surface-3: #E9EFF7;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  --text: #0E1729;
+  --text-muted: #4A586E;
+  --text-dim: #8593A8;
+
+  --primary: #0EA5E9;
+  --primary-strong: #0284C7;
+  --primary-contrast: #FFFFFF;
+  --primary-soft: rgba(14, 165, 233, 0.10);
+  --primary-border: rgba(14, 165, 233, 0.28);
+
+  --accent: #6366F1;
+  --accent-2: #9333EA;
+
+  --ok: #059669;
+  --ok-soft: rgba(5, 150, 105, 0.10);
+  --ok-border: rgba(5, 150, 105, 0.26);
+  --err: #E11D48;
+  --err-soft: rgba(225, 29, 72, 0.09);
+  --err-border: rgba(225, 29, 72, 0.26);
+  --warn: #D97706;
+  --warn-soft: rgba(217, 119, 6, 0.10);
+  --warn-border: rgba(217, 119, 6, 0.28);
+
+  --ring: rgba(14, 165, 233, 0.35);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 30px -12px rgba(15, 23, 42, 0.18);
+  --shadow-lg: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+  --shadow-glow: 0 0 0 1px var(--primary-border), 0 14px 40px -16px rgba(14, 165, 233, 0.30);
+  --login-glow-rgb: 14, 165, 233;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* theme-transition: smooth color flip without animating layout */
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color var(--dur) var(--ease),
+              border-color var(--dur) var(--ease),
+              color var(--dur) var(--ease) !important;
+}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+button { font-family: var(--font-sans); }
+button:hover:not(:disabled) { filter: brightness(1.06); }
+button:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+a { color: var(--primary); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); background-clip: content-box; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ---------- responsive shell ---------- */
+.kode-sidebar-desktop { display: block; }
+@media (max-width: 860px) {
+  .kode-sidebar-desktop { display: none; }
+  .kode-menu-btn { display: inline-flex !important; }
+}
+
+/* card grid helpers */
+.kode-grid { display: grid; gap: 18px; }
+.kode-grid-kpi { grid-template-columns: repeat(4, 1fr); }
+.kode-grid-2 { grid-template-columns: 1.4fr 1fr; }
+@media (max-width: 1024px) { .kode-grid-kpi { grid-template-columns: repeat(2, 1fr); } .kode-grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .kode-grid-kpi { grid-template-columns: 1fr; } }
+
+.kode-skel {
+  position: relative; overflow: hidden; background: var(--surface-2);
+}
+.kode-skel::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 8%, transparent), transparent);
+  transform: translateX(-100%); animation: shimmer 1.4s infinite;
+}
+
+/* ---------- KODE login splash (logo click → form) ---------- */
+.kode-login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.kode-login-page__mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 15% 10%, var(--bg-mesh-1), transparent 70%),
+    radial-gradient(50% 50% at 90% 90%, var(--bg-mesh-2), transparent 70%);
+}
+
+.kode-login-page__theme {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  z-index: 30;
+}
+
+.kode-login-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: fadeIn 0.4s var(--ease);
+}
+
+.kode-login-splash__inner {
+  text-align: center;
+}
+
+.kode-login-splash__logo-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.kode-login-splash__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(var(--login-glow-rgb), 0.55);
+  filter: blur(48px);
+  opacity: 0.5;
+  transform: scale(1.5);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+.kode-login-splash__logo {
+  position: relative;
+  width: 192px;
+  height: 192px;
+  object-fit: contain;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  filter:
+    drop-shadow(0 0 30px rgba(var(--login-glow-rgb), 0.8))
+    brightness(1.2);
+}
+
+.kode-login-splash__hint {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-dim);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.kode-logo {
+  display: inline-block;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(120deg, var(--primary), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.kode-login-splash__fallback {
+  display: none;
+  position: relative;
+  font-size: 9rem;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  filter:
+    drop-shadow(0 0 30px rgba(var(--login-glow-rgb), 0.8))
+    brightness(1.3);
+  text-shadow: 0 0 20px rgba(var(--login-glow-rgb), 0.6);
+}
+
+.kode-login-form-wrap {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 408px;
+  padding: 24px;
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+
+.kode-login-form-wrap.is-hidden {
+  opacity: 0;
+  transform: translateY(4rem);
+  pointer-events: none;
+}
+
+.kode-login-form-wrap.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.kode-login-form__header {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.kode-login-form__logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 14px;
+}
+
+.kode-login-form__title {
+  margin: 14px 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.kode-login-form__subtitle {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
