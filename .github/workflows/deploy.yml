@@ -22,7 +22,8 @@ jobs:
 
     env:
       # IIS site root the frontend is published to (served by IIS).
-      IIS_SITE_PATH: 'C:\inetpub\kode-faceid'
+      # Matches the existing 'FaceId-KODE' site bound to port :88.
+      IIS_SITE_PATH: 'C:\Users\Administrator\Desktop\FaceId-KODE\FaceId-KODE\dist'
       # Frontend build-time variables (baked into the bundle by Vite).
       VITE_API_BASE: ${{ vars.VITE_API_BASE }}
       VITE_PORTAL_API: ${{ vars.VITE_PORTAL_API }}
