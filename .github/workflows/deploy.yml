@@ -1,82 +1,72 @@
 name: Deploy KODE Face-ID Portal
 
-# Internal-network deploy. Runs on a SELF-HOSTED runner installed on the IIS
-# server (GitHub-hosted runners cannot reach 10.x internal hosts or your IIS box).
-# The runner service account needs: Node 18+ on PATH, pm2 (global), and write
-# access to the IIS site folder.
+# Single-server internal deploy. The self-hosted runner lives ON the IIS server
+# and runs as the same account that owns the PM2 process (Administrator), so it
+# can update the live clone, rebuild, and reload PM2 in place.
+#
+# It deploys by operating directly on the existing server clone (DEPLOY_DIR) —
+# NOT the runner's _work checkout — so the backend keeps its untracked .env
+# (DB creds + JWT secret) and the frontend builds straight into the IIS folder.
 
 on:
   push:
     branches: [main]
   workflow_dispatch: {}
 
-# Never let two deploys run at once on the same server.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: [self-hosted, windows, kode-portal]   # match the labels you give the runner
-    environment: production
+    runs-on: [self-hosted, windows, kode-portal]
 
     env:
-      # IIS site root the frontend is published to (served by IIS).
-      # Matches the existing 'FaceId-KODE' site bound to port :88.
-      IIS_SITE_PATH: 'C:\Users\Administrator\Desktop\FaceId-KODE\FaceId-KODE\dist'
+      # The live clone on the server. Backend runs from here; .env lives here.
+      DEPLOY_DIR: 'C:\Users\Administrator\Desktop\FaceId-KODE\FaceId-KODE'
+      # IIS site root (served on :88). This is <DEPLOY_DIR>\dist.
+      SITE_DIR: 'C:\Users\Administrator\Desktop\FaceId-KODE\FaceId-KODE\dist'
       # Frontend build-time variables (baked into the bundle by Vite).
+      # VITE_API_BASE left blank => frontend calls relative /api, proxied by IIS to AEOS.
+      # VITE_PORTAL_API should be /portal-api (the IIS rewrite to the local backend).
       VITE_API_BASE: ${{ vars.VITE_API_BASE }}
       VITE_PORTAL_API: ${{ vars.VITE_PORTAL_API }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # If your runner doesn't already have Node pinned, this enforces it.
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      # ── Backend ────────────────────────────────────────────────
-      - name: Install backend deps
-        working-directory: backend
-        run: npm ci
-
-      - name: Run backend tests
-        working-directory: backend
-        run: npm test
-
-      - name: Apply DB migrations
-        working-directory: backend
-        run: npm run migrate
-        # DB credentials come from backend/.env on the server (loaded by dotenv).
-        # This file is NOT in git — it lives on the server only.
-
-      # ── Frontend ───────────────────────────────────────────────
-      - name: Install frontend deps
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Publish frontend to IIS
+      - name: Update server clone to latest main
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "$env:IIS_SITE_PATH" | Out-Null
-          # /MIR mirrors dist -> site root (deletes removed files). web.config is
-          # in dist via the build, but copy it explicitly in case it isn't.
-          robocopy "frontend\dist" "$env:IIS_SITE_PATH" /MIR /NFL /NDL /NJH /NJS /NP
-          $rc = $LASTEXITCODE   # robocopy uses 0-7 for success; 8+ is a real error
-          Copy-Item "frontend\web.config" "$env:IIS_SITE_PATH\web.config" -Force
+          cd "$env:DEPLOY_DIR"
+          git fetch origin
+          git reset --hard origin/main   # .env / node_modules / dist are untracked and survive
+
+      - name: Backend — install, test, migrate
+        shell: pwsh
+        run: |
+          cd "$env:DEPLOY_DIR\backend"
+          npm ci
+          npm test
+          npm run migrate
+
+      - name: Frontend — install and build
+        shell: pwsh
+        run: |
+          cd "$env:DEPLOY_DIR\frontend"
+          npm ci
+          npm run build
+
+      - name: Publish frontend to IIS folder
+        shell: pwsh
+        run: |
+          cd "$env:DEPLOY_DIR"
+          robocopy "frontend\dist" "$env:SITE_DIR" /MIR /NFL /NDL /NJH /NJS /NP
+          $rc = $LASTEXITCODE              # robocopy: 0-7 = success, 8+ = error
+          Copy-Item "frontend\web.config" "$env:SITE_DIR\web.config" -Force
           if ($rc -ge 8) { exit $rc } else { exit 0 }
 
-      # ── Restart backend under PM2 (zero-downtime reload) ───────
-      - name: Reload backend (PM2)
-        working-directory: backend
+      - name: Reload backend under PM2 (in place, keeps .env)
         shell: pwsh
         run: |
+          cd "$env:DEPLOY_DIR\backend"
           pm2 startOrReload ecosystem.config.cjs --update-env
           pm2 save
