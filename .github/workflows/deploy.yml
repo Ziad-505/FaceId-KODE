@@ -34,14 +34,14 @@ jobs:
 
     steps:
       - name: Update server clone to latest main
-        shell: pwsh
+        shell: powershell
         run: |
           cd "$env:DEPLOY_DIR"
           git fetch origin
           git reset --hard origin/main   # .env / node_modules / dist are untracked and survive
 
       - name: Backend — install, test, migrate
-        shell: pwsh
+        shell: powershell
         run: |
           cd "$env:DEPLOY_DIR\backend"
           npm ci
@@ -49,14 +49,14 @@ jobs:
           npm run migrate
 
       - name: Frontend — install and build
-        shell: pwsh
+        shell: powershell
         run: |
           cd "$env:DEPLOY_DIR\frontend"
           npm ci
           npm run build
 
       - name: Publish frontend to IIS folder
-        shell: pwsh
+        shell: powershell
         run: |
           cd "$env:DEPLOY_DIR"
           robocopy "frontend\dist" "$env:SITE_DIR" /MIR /NFL /NDL /NJH /NJS /NP
@@ -65,7 +65,7 @@ jobs:
           if ($rc -ge 8) { exit $rc } else { exit 0 }
 
       - name: Reload backend under PM2 (in place, keeps .env)
-        shell: pwsh
+        shell: powershell
         run: |
           cd "$env:DEPLOY_DIR\backend"
           pm2 startOrReload ecosystem.config.cjs --update-env
