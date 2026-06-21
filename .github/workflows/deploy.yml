@@ -1,0 +1,81 @@
+name: Deploy KODE Face-ID Portal
+
+# Internal-network deploy. Runs on a SELF-HOSTED runner installed on the IIS
+# server (GitHub-hosted runners cannot reach 10.x internal hosts or your IIS box).
+# The runner service account needs: Node 18+ on PATH, pm2 (global), and write
+# access to the IIS site folder.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Never let two deploys run at once on the same server.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, kode-portal]   # match the labels you give the runner
+    environment: production
+
+    env:
+      # IIS site root the frontend is published to (served by IIS).
+      IIS_SITE_PATH: 'C:\inetpub\kode-faceid'
+      # Frontend build-time variables (baked into the bundle by Vite).
+      VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+      VITE_PORTAL_API: ${{ vars.VITE_PORTAL_API }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # If your runner doesn't already have Node pinned, this enforces it.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ── Backend ────────────────────────────────────────────────
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+      - name: Apply DB migrations
+        working-directory: backend
+        run: npm run migrate
+        # DB credentials come from backend/.env on the server (loaded by dotenv).
+        # This file is NOT in git — it lives on the server only.
+
+      # ── Frontend ───────────────────────────────────────────────
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Publish frontend to IIS
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:IIS_SITE_PATH" | Out-Null
+          # /MIR mirrors dist -> site root (deletes removed files). web.config is
+          # in dist via the build, but copy it explicitly in case it isn't.
+          robocopy "frontend\dist" "$env:IIS_SITE_PATH" /MIR /NFL /NDL /NJH /NJS /NP
+          $rc = $LASTEXITCODE   # robocopy uses 0-7 for success; 8+ is a real error
+          Copy-Item "frontend\web.config" "$env:IIS_SITE_PATH\web.config" -Force
+          if ($rc -ge 8) { exit $rc } else { exit 0 }
+
+      # ── Restart backend under PM2 (zero-downtime reload) ───────
+      - name: Reload backend (PM2)
+        working-directory: backend
+        shell: pwsh
+        run: |
+          pm2 startOrReload ecosystem.config.cjs --update-env
+          pm2 save

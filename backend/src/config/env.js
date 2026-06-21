@@ -30,7 +30,7 @@ export const env = {
     database: process.env.PGDATABASE,
   },
 
-  jwtSecret: required("JWT_SECRET", "dev-only-insecure-secret"),
+  jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "8h",
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? 12),
 
